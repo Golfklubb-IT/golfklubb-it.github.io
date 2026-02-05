@@ -7,7 +7,7 @@ Automatically discovers and lists all active GitHub Pages in the organization.
 import os
 import sys
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 
 # Configuration
@@ -82,7 +82,7 @@ def find_active_pages(repos: List[Dict]) -> List[Dict]:
 
 def generate_html(active_pages: List[Dict]) -> str:
     """Generate the HTML page."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     timestamp = now.strftime("%d.%m.%Y kl. %H:%M UTC")
     
     # Build the pages list HTML
