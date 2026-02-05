@@ -25,6 +25,7 @@ wheels/
 
 # Test files
 index_test.html
+favicon-*.png
 
 # IDEs
 .vscode/
