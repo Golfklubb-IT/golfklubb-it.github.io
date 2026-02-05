@@ -74,6 +74,13 @@ Siden har et moderne, responsivt design med:
 
 Dette skjer **automatisk**! Du trenger ikke gjøre noe manuelt.
 
+### Hvordan oppdagelse fungerer:
+
+Systemet bruker GitHub API's `has_pages` felt for å finne repositories med aktive GitHub Pages. Dette betyr at:
+- Siden vil vises umiddelbart etter at Pages er aktivert i et repository
+- Siden vil forsvinne automatisk når Pages deaktiveres
+- Du trenger ikke vente på at siden skal bli tilgjengelig før den vises i oversikten
+
 ### Legge til en ny side:
 1. Aktiver GitHub Pages i det aktuelle repository (Settings → Pages)
 2. Vent på neste automatiske kjøring (hver dag kl. 00:00 UTC) eller kjør workflow manuelt
@@ -89,9 +96,11 @@ Dette skjer **automatisk**! Du trenger ikke gjøre noe manuelt.
 ### Tekniske detaljer:
 - **Python-versjon**: 3.11
 - **Dependencies**: `requests>=2.31.0`
+- **Oppdagelsesmetode**: Bruker GitHub API's `has_pages` felt
+- **URL-verifisering**: Kan aktiveres med `VERIFY_URLS=true` (standard: av)
 - **Timeout**: 10 sekunder per URL-sjekk
 - **Rate limiting**: Håndteres automatisk av GitHub API
-- **Feilhåndtering**: Hvis en side ikke svarer, ekskluderes den automatisk
+- **Feilhåndtering**: Hvis API feiler, genereres en tom side med instruksjoner
 
 ### Feilsøking:
 
@@ -100,10 +109,16 @@ Dette skjer **automatisk**! Du trenger ikke gjøre noe manuelt.
 2. Verifiser at GitHub Pages er aktivert i Settings → Pages
 3. Sjekk at GITHUB_TOKEN har nødvendige permissions
 
-**Hvis en side ikke vises:**
-1. Verifiser at GitHub Pages er aktivert for den aktuelle repository
-2. Sjekk at siden er tilgjengelig på `https://golfklubb-it.github.io/[repo-navn]/`
-3. Vent på neste automatiske kjøring eller kjør workflow manuelt
+**Hvis en side ikke vises selv om Pages er aktivert:**
+1. Verifiser at GitHub Pages faktisk er aktivert i repository-innstillingene
+2. Sjekk at `has_pages` er true i GitHub API (vis med: `curl https://api.github.com/repos/Golfklubb-IT/[repo-navn]`)
+3. Kjør workflow manuelt for å oppdatere umiddelbart
+4. Vent noen minutter - det kan ta litt tid før GitHub oppdaterer `has_pages` feltet
+
+**Hvis siden viser "Ingen aktive GitHub Pages funnet":**
+1. Dette betyr at ingen repositories i organisasjonen har GitHub Pages aktivert
+2. Eller at GitHub API ikke returnerer noen repositories (sjekk GITHUB_TOKEN)
+3. Aktiver Pages i minst ett repository for å se det i oversikten
 
 ## 📝 Lisens
 

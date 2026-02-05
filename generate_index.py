@@ -15,6 +15,7 @@ ORG_NAME = "Golfklubb-IT"
 GITHUB_API_URL = f"https://api.github.com/orgs/{ORG_NAME}/repos"
 PAGES_BASE_URL = f"https://golfklubb-it.github.io"
 TIMEOUT = 10  # seconds
+VERIFY_URLS = os.environ.get('VERIFY_URLS', 'false').lower() == 'true'  # Set to true to verify URLs are accessible
 
 def get_github_token() -> Optional[str]:
     """Get GitHub token from environment."""
@@ -64,20 +65,42 @@ def find_active_pages(repos: List[Dict]) -> List[Dict]:
     
     for repo in repos:
         repo_name = repo['name']
-        print(f"Checking {repo_name}...", end=" ")
+        has_pages = repo.get('has_pages', False)
         
-        if check_pages_url(repo_name):
-            print("✓ Active")
+        # Skip the main organization page itself (it's this repo)
+        if repo_name.lower() == f"{ORG_NAME}.github.io".lower():
+            print(f"Skipping {repo_name} (main org page)")
+            continue
+        
+        print(f"Checking {repo_name}... has_pages={has_pages}", end=" ")
+        
+        # Use has_pages field as primary indicator
+        if has_pages:
+            is_accessible = True
+            
+            # Optionally verify URL is accessible
+            if VERIFY_URLS:
+                is_accessible = check_pages_url(repo_name)
+                if is_accessible:
+                    print("✓ Active (verified)")
+                else:
+                    print("⚠ Has Pages enabled but URL not accessible yet")
+            else:
+                print("✓ Has Pages enabled")
+            
+            # Include the page regardless of URL accessibility
+            # (GitHub Pages might not be deployed yet, but will be soon)
             active_pages.append({
                 'name': repo_name,
                 'description': repo.get('description') or 'Ingen beskrivelse tilgjengelig',
                 'url': f"{PAGES_BASE_URL}/{repo_name}/",
-                'html_url': repo['html_url']
+                'html_url': repo['html_url'],
+                'accessible': is_accessible
             })
         else:
-            print("✗ Not active")
+            print("✗ No Pages")
     
-    print(f"\nFound {len(active_pages)} active GitHub Pages")
+    print(f"\nFound {len(active_pages)} repositories with GitHub Pages enabled")
     return active_pages
 
 def generate_html(active_pages: List[Dict]) -> str:
@@ -89,6 +112,11 @@ def generate_html(active_pages: List[Dict]) -> str:
     if active_pages:
         pages_html = ""
         for page in sorted(active_pages, key=lambda x: x['name'].lower()):
+            # Add a note if the page isn't accessible yet
+            accessibility_note = ""
+            if VERIFY_URLS and not page.get('accessible', True):
+                accessibility_note = '<p class="note">⚠️ Siden er aktivert men ikke tilgjengelig ennå. Vent noen minutter og last siden på nytt.</p>'
+            
             pages_html += f"""
             <div class="page-card">
                 <div class="card-header">
@@ -100,6 +128,7 @@ def generate_html(active_pages: List[Dict]) -> str:
                     </a>
                 </div>
                 <p class="description">{page['description']}</p>
+                {accessibility_note}
                 <a href="{page['url']}" class="visit-button" target="_blank" rel="noopener">Besøk side →</a>
             </div>
 """
@@ -225,6 +254,17 @@ def generate_html(active_pages: List[Dict]) -> str:
             color: #666;
             margin-bottom: 20px;
             line-height: 1.5;
+        }}
+        
+        .note {{
+            color: #856404;
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            line-height: 1.4;
         }}
         
         .visit-button {{

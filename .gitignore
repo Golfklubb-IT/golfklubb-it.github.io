@@ -23,6 +23,9 @@ wheels/
 .installed.cfg
 *.egg
 
+# Test files
+index_test.html
+
 # IDEs
 .vscode/
 .idea/
